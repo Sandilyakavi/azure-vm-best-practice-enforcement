@@ -1,0 +1,5 @@
+{
+  "approved_rules": [
+    "Ensure file permissions on /etc/gshadow are configured"
+  ]
+}

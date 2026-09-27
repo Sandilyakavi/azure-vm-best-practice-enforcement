@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>P078 VM Enforcement Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+            background: #0a0f16;
+            color: #e5e7eb;
+        }
+
+        .container {
+            width: min(1450px, 94%);
+            margin: auto;
+        }
+
+        header {
+            padding: 32px 0 22px;
+            border-bottom: 1px solid #1f2937;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .title {
+            font-size: 30px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .live {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 13px;
+            border: 1px solid #263241;
+            border-radius: 999px;
+            color: #a7f3d0;
+            background: #0d1716;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #34d399;
+        }
+
+        .refresh-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 9px 15px;
+            border: 1px solid #334155;
+            border-radius: 9px;
+            background: #111827;
+            color: #e5e7eb;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 650;
+            transition:
+                background 0.2s ease,
+                border-color 0.2s ease,
+                transform 0.2s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #182234;
+            border-color: #64748b;
+            transform: translateY(-1px);
+        }
+
+        .refresh-icon {
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin: 24px 0;
+        }
+
+        .meta-card {
+            background: #101722;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            padding: 17px;
+        }
+
+        .meta-label {
+            color: #64748b;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .meta-value {
+            margin-top: 7px;
+            font-size: 15px;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: #101722;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .card-label {
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .card-value {
+            margin-top: 8px;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .progress-card {
+            margin-bottom: 24px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .progress-title {
+            font-weight: 600;
+        }
+
+        .percentage {
+            font-weight: 700;
+        }
+
+        .progress {
+            width: 100%;
+            height: 9px;
+            background: #1e293b;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: {{ compliance_percentage }}%;
+            background: #34d399;
+            border-radius: 99px;
+        }
+
+        .section {
+            background: #101722;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid #1f2937;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 650;
+        }
+
+        .section-subtitle {
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .search {
+            width: 300px;
+            max-width: 100%;
+            padding: 10px 13px;
+            border-radius: 8px;
+            border: 1px solid #293548;
+            background: #0b111a;
+            color: #e5e7eb;
+            outline: none;
+        }
+
+        .search:focus {
+            border-color: #64748b;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 20px;
+            color: #64748b;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            background: #0c131d;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 14px 20px;
+            border-top: 1px solid #1b2533;
+            vertical-align: top;
+            font-size: 13px;
+        }
+
+        tr:hover {
+            background: #111b28;
+        }
+
+        .rule {
+            color: #f1f5f9;
+            font-weight: 550;
+            min-width: 300px;
+        }
+
+        .reason {
+            color: #94a3b8;
+            min-width: 350px;
+            max-width: 550px;
+            line-height: 1.5;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-compliant {
+            background: #10251e;
+            color: #6ee7b7;
+        }
+
+        .badge-safe {
+            background: #17231c;
+            color: #a7f3d0;
+        }
+
+        .badge-review {
+            background: #27200e;
+            color: #fcd34d;
+        }
+
+        .badge-manual {
+            background: #261719;
+            color: #fca5a5;
+        }
+
+        .badge-exception {
+            background: #172033;
+            color: #93c5fd;
+        }
+
+        .remediation-table td {
+            vertical-align: middle;
+        }
+
+        .transition {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            white-space: nowrap;
+            font-weight: 700;
+        }
+
+        .before {
+            color: #fca5a5;
+            background: #261719;
+            padding: 5px 8px;
+            border-radius: 5px;
+        }
+
+        .arrow {
+            color: #64748b;
+        }
+
+        .after {
+            color: #6ee7b7;
+            background: #10251e;
+            padding: 5px 8px;
+            border-radius: 5px;
+        }
+
+        .verified {
+            color: #6ee7b7;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .command {
+            font-family: "SFMono-Regular", Consolas, monospace;
+            color: #cbd5e1;
+            font-size: 12px;
+        }
+
+        .timestamp {
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
+        .historical {
+            color: #fbbf24;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+
+        .empty {
+            padding: 30px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        footer {
+            padding: 20px 0 35px;
+            color: #475569;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        @media (max-width: 1000px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .meta-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-row {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .header-actions {
+                justify-content: flex-start;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .title {
+                font-size: 23px;
+            }
+
+            .section-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .header-actions {
+                width: 100%;
+            }
+
+            .refresh-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <header>
+        <div class="header-row">
+
+            <div>
+                <div class="title">
+                    P078 VM Enforcement Dashboard
+                </div>
+
+                <div class="subtitle">
+                    Azure VM Best Practice Enforcement · Policy-Aware Compliance
+                </div>
+            </div>
+
+            <div class="header-actions">
+
+                <a href="/refresh" class="refresh-btn">
+                    <span class="refresh-icon">↻</span>
+                    Refresh from Azure
+                </a>
+
+                <div class="live">
+                    <span class="dot"></span>
+                    READ-ONLY AUDIT
+                </div>
+
+            </div>
+
+        </div>
+    </header>
+
+
+    <!-- VM METADATA -->
+    <div class="meta-grid">
+
+        <div class="meta-card">
+            <div class="meta-label">
+                Virtual Machine
+            </div>
+
+            <div class="meta-value">
+                {{ audit.get("vm", "Unknown") }}
+            </div>
+        </div>
+
+        <div class="meta-card">
+            <div class="meta-label">
+                Guest Configuration
+            </div>
+
+            <div class="meta-value">
+                {{ audit.get("assignment", "Unknown") }}
+            </div>
+        </div>
+
+        <div class="meta-card">
+            <div class="meta-label">
+                Total Findings
+            </div>
+
+            <div class="meta-value">
+                {{ total }}
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- SUMMARY -->
+    <div class="summary-grid">
+
+        <div class="card">
+            <div class="card-label">
+                Compliant
+            </div>
+
+            <div class="card-value">
+                {{ summary.get("compliant", 0) }}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-label">
+                Safe
+            </div>
+
+            <div class="card-value">
+                {{ summary.get("safe", 0) }}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-label">
+                Exception
+            </div>
+
+            <div class="card-value">
+                {{ summary.get("exception", 0) }}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-label">
+                Review
+            </div>
+
+            <div class="card-value">
+                {{ summary.get("review", 0) }}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-label">
+                Manual
+            </div>
+
+            <div class="card-value">
+                {{ summary.get("manual", 0) }}
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- COMPLIANCE -->
+    <div class="card progress-card">
+
+        <div class="progress-header">
+
+            <div class="progress-title">
+                Compliance Coverage
+            </div>
+
+            <div class="percentage">
+                {{ compliance_percentage }}%
+            </div>
+
+        </div>
+
+        <div class="progress">
+            <div class="progress-bar"></div>
+        </div>
+
+    </div>
+
+
+    <!-- REMEDIATION HISTORY -->
+    <section class="section">
+
+        <div class="section-header">
+
+            <div>
+
+                <div class="section-title">
+                    Remediation History
+                </div>
+
+                <div class="section-subtitle">
+                    Verified configuration changes executed through the enforcement workflow
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-wrap">
+
+            {% if remediation_history %}
+
+            <table class="remediation-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Rule</th>
+                        <th>Decision</th>
+                        <th>Change</th>
+                        <th>Command</th>
+                        <th>Verification</th>
+                        <th>Timestamp</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for item in remediation_history %}
+
+                    <tr>
+
+                        <td>
+
+                            <div class="rule">
+                                {{ item.get("rule", "Unknown") }}
+                            </div>
+
+                            {% if item.get("source") == "historical_remediation_record" %}
+
+                                <div class="historical">
+                                    Historical record
+                                </div>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            <span class="badge badge-safe">
+                                {{ item.get("decision", "UNKNOWN") }}
+                            </span>
+
+                        </td>
+
+                        <td>
+
+                            <div class="transition">
+
+                                <span class="before">
+                                    {{ item.get("before", "-") }}
+                                </span>
+
+                                <span class="arrow">
+                                    →
+                                </span>
+
+                                <span class="after">
+                                    {{ item.get("after", "-") }}
+                                </span>
+
+                            </div>
+
+                        </td>
+
+                        <td>
+
+                            <div class="command">
+                                {{ item.get("command", "-") }}
+                            </div>
+
+                        </td>
+
+                        <td>
+
+                            {% if item.get("verification") == "PASSED" %}
+
+                                <span class="verified">
+                                    ✓ PASSED
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge badge-manual">
+                                    {{ item.get("verification", "UNKNOWN") }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% if item.get("timestamp") %}
+
+                                <div class="timestamp">
+                                    {{ item.get("timestamp") }}
+                                </div>
+
+                            {% else %}
+
+                                <div class="timestamp">
+                                    Timestamp unavailable
+                                </div>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            {% else %}
+
+                <div class="empty">
+                    No remediation history recorded.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
+    <!-- FINDINGS -->
+    <section class="section">
+
+        <div class="section-header">
+
+            <div>
+
+                <div class="section-title">
+                    Compliance Findings
+                </div>
+
+                <div class="section-subtitle">
+                    Guest Configuration findings evaluated by the P078 policy engine
+                </div>
+
+            </div>
+
+            <input
+                id="search"
+                class="search"
+                type="text"
+                placeholder="Search rules or reasons..."
+                onkeyup="filterTable()"
+            >
+
+        </div>
+
+
+        <div class="table-wrap">
+
+            <table id="findingsTable">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Rule</th>
+                        <th>Status</th>
+                        <th>Decision</th>
+                        <th>Reason</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for item in findings %}
+
+                    <tr>
+
+                        <td class="rule">
+                            {{ item.get("resource", "Unknown") }}
+                        </td>
+
+                        <td>
+                            {{ item.get("status", "-") }}
+                        </td>
+
+                        <td>
+
+                            {% set decision = item.get("decision", "UNKNOWN") %}
+
+                            {% if decision == "COMPLIANT" %}
+
+                                <span class="badge badge-compliant">
+                                    COMPLIANT
+                                </span>
+
+                            {% elif decision == "SAFE" %}
+
+                                <span class="badge badge-safe">
+                                    SAFE
+                                </span>
+
+                            {% elif decision == "REVIEW" %}
+
+                                <span class="badge badge-review">
+                                    REVIEW
+                                </span>
+
+                            {% elif decision == "MANUAL" %}
+
+                                <span class="badge badge-manual">
+                                    MANUAL
+                                </span>
+
+                            {% elif decision == "EXCEPTION" %}
+
+                                <span class="badge badge-exception">
+                                    EXCEPTION
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge">
+                                    {{ decision }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td class="reason">
+                            {{ item.get("reason", "-") }}
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <footer>
+        P078 · Azure VM Best Practice Enforcement · Read-only audit dashboard
+    </footer>
+
+</div>
+
+
+<script>
+
+function filterTable() {
+
+    const input = document
+        .getElementById("search")
+        .value
+        .toLowerCase();
+
+    const rows = document
+        .getElementById("findingsTable")
+        .getElementsByTagName("tbody")[0]
+        .getElementsByTagName("tr");
+
+    for (let row of rows) {
+
+        const text = row
+            .innerText
+            .toLowerCase();
+
+        row.style.display =
+            text.includes(input)
+                ? ""
+                : "none";
+    }
+}
+
+</script>
+
+</body>
+
+</html>
